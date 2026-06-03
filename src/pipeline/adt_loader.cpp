@@ -2,6 +2,7 @@
 #include "core/logger.hpp"
 #include "core/profiler.hpp"
 #include <cstring>
+#include <cstdio>
 #include <cmath>
 #include <algorithm>
 #include <limits>
@@ -364,6 +365,17 @@ void ADTLoader::parseMCNK(const uint8_t* data, size_t size, int chunkIndex, ADTT
     if (ofsAlpha > 0 && sizeAlpha > 0 && ofsAlpha + sizeAlpha <= size) {
         uint32_t possibleMagic = readUInt32(data, ofsAlpha);
         uint32_t skip = (possibleMagic == MCAL) ? 8 : 0;
+        if (chunkIndex == 0) {
+            // дамп окрестности ofsAlpha: ищем где лежит магия "MCAL" (0x4C41434D LE)
+            fprintf(stderr, "[LOADER] MCAL[0] ofsAlpha=%u sizeAlpha=%u nLayers=%u\n", ofsAlpha, sizeAlpha, nLayers);
+            for (int d=-8; d<=8; d+=4)
+                if ((int)ofsAlpha+d >= 0 && ofsAlpha+d+4 <= size)
+                    fprintf(stderr, "   [ofs%+d] = 0x%08X\n", d, readUInt32(data, ofsAlpha+d));
+            // также напечатать magic у MCVT/MCNR/MCLY для сверки наличия заголовков подчанков
+            fprintf(stderr, "   MCVT@%u=0x%08X MCNR@%u=0x%08X MCLY@%u=0x%08X\n",
+                    ofsHeight, readUInt32(data,ofsHeight), ofsNormal, readUInt32(data,ofsNormal),
+                    ofsLayer, readUInt32(data,ofsLayer));
+        }
         parseMCAL(data + ofsAlpha + skip, sizeAlpha - skip, chunk);
     }
 
